@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人名片</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="card">
+        <div class="avatar">
+            <input type="file" id="avatarInput" accept="image/*" hidden>
+            <img id="avatarImg" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="头像" title="点击上传头像">
+            <div class="upload-hint">点击头像上传</div>
+        </div>
+        <h1 class="name" contenteditable="true" data-placeholder="输入姓名">张三</h1>
+        <p class="title" contenteditable="true" data-placeholder="输入职位">前端开发工程师</p>
+        <p class="intro" contenteditable="true" data-placeholder="输入自我介绍">热爱编程，专注于Web开发技术。拥有3年前端开发经验，擅长React、Vue等现代前端框架，追求代码质量和用户体验的完美结合。</p>
+        <div class="contact">
+            <h3>联系方式</h3>
+            <ul>
+                <li contenteditable="true" data-placeholder="输入邮箱">📧 zhangsan@email.com</li>
+                <li contenteditable="true" data-placeholder="输入电话">📱 138-0000-0000</li>
+                <li contenteditable="true" data-placeholder="输入地址">📍 北京市朝阳区</li>
+                <li contenteditable="true" data-placeholder="输入GitHub">🔗 github.com/zhangsan</li>
+            </ul>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
