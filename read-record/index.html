@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阅读记录</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📚 阅读记录</h1>
+        
+        <form id="book-form">
+            <div class="form-group">
+                <label for="book-name">书籍名称</label>
+                <input type="text" id="book-name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="book-category">分类</label>
+                <select id="book-category" required>
+                    <option value="">请选择分类</option>
+                    <option value="政治历史">政治历史</option>
+                    <option value="投资理财">投资理财</option>
+                    <option value="文学艺术">文学艺术</option>
+                    <option value="科学科普">科学科普</option>
+                    <option value="应用工程">应用工程</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>评分</label>
+                <div class="rating">
+                    <input type="radio" id="star5" name="rating" value="5" required>
+                    <label for="star5">★</label>
+                    <input type="radio" id="star4" name="rating" value="4">
+                    <label for="star4">★</label>
+                    <input type="radio" id="star3" name="rating" value="3">
+                    <label for="star3">★</label>
+                    <input type="radio" id="star2" name="rating" value="2">
+                    <label for="star2">★</label>
+                    <input type="radio" id="star1" name="rating" value="1">
+                    <label for="star1">★</label>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn">添加记录</button>
+        </form>
+        
+        <div class="records-section">
+            <h2>阅读记录列表</h2>
+            <div id="records-list"></div>
+        </div>
+        
+        <!-- 编辑模态框 -->
+        <div id="edit-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>编辑阅读记录</h3>
+                <form id="edit-form">
+                    <input type="hidden" id="edit-id">
+                    <div class="form-group">
+                        <label for="edit-book-name">书籍名称</label>
+                        <input type="text" id="edit-book-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-book-category">分类</label>
+                        <select id="edit-book-category" required>
+                            <option value="">请选择分类</option>
+                            <option value="政治历史">政治历史</option>
+                            <option value="投资理财">投资理财</option>
+                            <option value="文学艺术">文学艺术</option>
+                            <option value="科学科普">科学科普</option>
+                            <option value="应用工程">应用工程</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>评分</label>
+                        <div class="rating">
+                            <input type="radio" id="edit-star5" name="edit-rating" value="5" required>
+                            <label for="edit-star5">★</label>
+                            <input type="radio" id="edit-star4" name="edit-rating" value="4">
+                            <label for="edit-star4">★</label>
+                            <input type="radio" id="edit-star3" name="edit-rating" value="3">
+                            <label for="edit-star3">★</label>
+                            <input type="radio" id="edit-star2" name="edit-rating" value="2">
+                            <label for="edit-star2">★</label>
+                            <input type="radio" id="edit-star1" name="edit-rating" value="1">
+                            <label for="edit-star1">★</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn">保存修改</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
