@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>日漫新番追踪</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-xl">
+          🎬
+        </div>
+        <div>
+          <h1 class="text-lg font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
+            日漫新番追踪
+          </h1>
+          <p class="text-xs text-slate-400">本周更新一览</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          id="manage-btn"
+          class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-all duration-200 active:scale-95"
+        >
+          👁 管理
+        </button>
+        <button
+          id="trash-btn"
+          class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-all duration-200 active:scale-95"
+        >
+          🗑 回收站
+        </button>
+        <button
+          id="refresh-btn"
+          class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-sm font-medium transition-all duration-200 shadow-lg shadow-purple-500/30 active:scale-95"
+        >
+          🔄 刷新
+        </button>
+      </div>
+    </div>
+
+    <!-- 周一至周日 固定标签栏 -->
+    <nav id="weekday-nav" class="border-t border-white/5 bg-slate-900/60">
+      <div class="max-w-7xl mx-auto px-2 flex gap-1 overflow-x-auto scrollbar-hide"></div>
+    </nav>
+  </header>
+
+  <!-- Loading -->
+  <div id="loading" class="hidden fixed inset-0 z-40 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+    <div class="w-16 h-16 rounded-full border-4 border-white/20 border-t-pink-500 animate-spin"></div>
+    <p class="mt-4 text-slate-300">正在加载新番数据...</p>
+  </div>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    <!-- 所有设备统一：只显示选中的那天 -->
+    <div id="day-container"></div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden text-center py-20">
+      <div class="text-6xl mb-4">🍥</div>
+      <h3 class="text-xl font-semibold text-slate-300 mb-2">暂无数据</h3>
+      <p class="text-slate-500">点击上方刷新按钮重新加载</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-state" class="hidden text-center py-20">
+      <div class="text-6xl mb-4">😵</div>
+      <h3 class="text-xl font-semibold text-red-400 mb-2">加载失败</h3>
+      <p id="error-msg" class="text-slate-500 mb-4">请稍后重试</p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 text-slate-500 text-sm">
+    <p>数据来源：<a href="https://bgm.tv" target="_blank" class="text-purple-400 hover:text-purple-300 transition">Bangumi 番组计划</a></p>
+    <p class="mt-1">用 ❤️ 为动漫爱好者打造</p>
+  </footer>
+
+  <!-- 管理弹窗 -->
+  <div id="manage-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div class="bg-slate-800 rounded-2xl border border-white/10 w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <h2 class="font-bold text-lg">番剧管理</h2>
+        <button id="manage-close" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+      </div>
+      <div id="manage-list" class="overflow-y-auto p-5 space-y-2 flex-1"></div>
+    </div>
+  </div>
+
+  <!-- 回收站弹窗 -->
+  <div id="trash-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div class="bg-slate-800 rounded-2xl border border-white/10 w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <h2 class="font-bold text-lg">🗑 回收站</h2>
+        <button id="trash-close" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+      </div>
+      <div id="trash-list" class="overflow-y-auto p-5 space-y-2 flex-1"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

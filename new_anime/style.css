@@ -1,0 +1,83 @@
+/* 隐藏滚动条 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* 卡片悬浮效果 */
+.anime-card {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+.anime-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -15px rgba(236, 72, 153, 0.4);
+}
+
+/* 封面容器 */
+.cover-container {
+  position: relative;
+  overflow: hidden;
+}
+.cover-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.8) 100%);
+  pointer-events: none;
+}
+
+/* 封面悬浮缩放 */
+.cover-container img {
+  transition: transform 0.5s ease;
+}
+.anime-card:hover .cover-container img {
+  transform: scale(1.08);
+}
+
+/* 日列渐入动画 */
+.day-column {
+  animation: fadeIn 0.4s ease-out both;
+}
+.day-column:nth-child(1) { animation-delay: 0.05s; }
+.day-column:nth-child(2) { animation-delay: 0.1s; }
+.day-column:nth-child(3) { animation-delay: 0.15s; }
+.day-column:nth-child(4) { animation-delay: 0.2s; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 更新提示圆点 */
+.pulse-dot {
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* 周几标签按钮 */
+.weekday-tab {
+  white-space: nowrap;
+}
+.weekday-tab.active {
+  position: relative;
+}
+.weekday-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  border-radius: 1px;
+}
