@@ -38,6 +38,13 @@
           🗑 回收站
         </button>
         <button
+          id="publish-btn"
+          class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-all duration-200 active:scale-95"
+          title="导出配置，粘贴到 excluded.json 并推送以同步给所有人"
+        >
+          📤 发布配置
+        </button>
+        <button
           id="refresh-btn"
           class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-sm font-medium transition-all duration-200 shadow-lg shadow-purple-500/30 active:scale-95"
         >
@@ -103,6 +110,35 @@
         <button id="trash-close" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
       </div>
       <div id="trash-list" class="overflow-y-auto p-5 space-y-2 flex-1"></div>
+    </div>
+  </div>
+
+  <!-- 发布配置弹窗 -->
+  <div id="publish-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div class="bg-slate-800 rounded-2xl border border-white/10 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <h2 class="font-bold text-lg">📤 发布配置</h2>
+        <button id="publish-close" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+      </div>
+      <div class="p-5 space-y-3 flex-1 flex flex-col">
+        <p class="text-xs text-slate-400">
+          当前合并了本机改动与共享配置。将下面的 JSON 复制，覆盖仓库里的
+          <code class="bg-slate-900/60 px-1 rounded">excluded.json</code>，再 <code class="bg-slate-900/60 px-1 rounded">git commit & push</code> 即可让所有人看到这些更改。
+        </p>
+        <textarea
+          id="publish-text"
+          spellcheck="false"
+          class="w-full flex-1 min-h-[300px] font-mono text-xs bg-slate-900/60 border border-white/10 rounded-lg p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-pink-500/40 resize-none"
+        ></textarea>
+        <div class="flex items-center justify-end gap-2">
+          <button
+            id="publish-copy"
+            class="px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-sm font-medium transition-all active:scale-95"
+          >
+            📋 复制到剪贴板
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

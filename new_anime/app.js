@@ -16,13 +16,36 @@ const WEEKDAYS = [
 let selectedDay = 0;
 let cachedData = null;
 
+// ==================== 共享配置（excluded.json）====================
+// 仓库根目录的共享配置文件，所有访客打开页面都会读取。
+// 本机 localStorage 的改动只对自己生效；点“发布配置”导出后写入该文件并推送，其他人才看得到。
+const REMOTE_CONFIG_URL = 'excluded.json';
+let remoteConfig = { deleted: [], hidden: [], episodeOverride: {}, linkOverride: {} };
+
+async function loadRemoteConfig() {
+  try {
+    const res = await fetch(`${REMOTE_CONFIG_URL}?v=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const json = await res.json();
+    remoteConfig = {
+      deleted: Array.isArray(json.deleted) ? json.deleted.map(Number) : [],
+      hidden: Array.isArray(json.hidden) ? json.hidden.map(Number) : [],
+      episodeOverride: (json.episodeOverride && typeof json.episodeOverride === 'object') ? json.episodeOverride : {},
+      linkOverride: (json.linkOverride && typeof json.linkOverride === 'object') ? json.linkOverride : {},
+    };
+  } catch (err) {
+    // 未部署 / 离线 / 用 file:// 打开时会失败，属正常，忽略即可
+    console.warn('共享配置加载失败（离线或未部署时正常）：', err);
+  }
+}
+
 // ==================== 隐藏/删除列表管理 ====================
 const HIDDEN_KEY = 'anime_hidden_ids';
 const DELETED_KEY = 'anime_deleted_ids';
 
-function getHiddenIds() {
+function readLocalSet(key) {
   try {
-    return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]'));
+    return new Set(JSON.parse(localStorage.getItem(key) || '[]'));
   } catch { return new Set(); }
 }
 
@@ -30,26 +53,33 @@ function saveHiddenIds(idSet) {
   localStorage.setItem(HIDDEN_KEY, JSON.stringify([...idSet]));
 }
 
-function getDeletedIds() {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(DELETED_KEY) || '[]'));
-  } catch { return new Set(); }
-}
-
 function saveDeletedIds(idSet) {
   localStorage.setItem(DELETED_KEY, JSON.stringify([...idSet]));
 }
 
+// 仅本机改动（不含共享配置）
+function getLocalHiddenIds() { return readLocalSet(HIDDEN_KEY); }
+function getLocalDeletedIds() { return readLocalSet(DELETED_KEY); }
+
+// 最终生效 = 共享配置 ∪ 本机改动
+function getHiddenIds() { return new Set([...remoteConfig.hidden, ...getLocalHiddenIds()]); }
+function getDeletedIds() { return new Set([...remoteConfig.deleted, ...getLocalDeletedIds()]); }
+
 // ==================== 集数手动覆盖 ====================
 const EP_OVERRIDE_KEY = 'anime_episode_override';
 
-function getEpisodeOverrides() {
+function getLocalEpisodeOverrides() {
   try { return JSON.parse(localStorage.getItem(EP_OVERRIDE_KEY) || '{}'); }
   catch { return {}; }
 }
 
+// 最终生效 = 共享配置打底，本机覆盖优先
+function getEpisodeOverrides() {
+  return { ...remoteConfig.episodeOverride, ...getLocalEpisodeOverrides() };
+}
+
 function setEpisodeOverride(id, ep) {
-  const map = getEpisodeOverrides();
+  const map = getLocalEpisodeOverrides();
   if (ep > 0) map[id] = ep; else delete map[id];
   localStorage.setItem(EP_OVERRIDE_KEY, JSON.stringify(map));
 }
@@ -57,13 +87,17 @@ function setEpisodeOverride(id, ep) {
 // ==================== 自定义链接 ====================
 const LINK_OVERRIDE_KEY = 'anime_link_override';
 
-function getLinkOverrides() {
+function getLocalLinkOverrides() {
   try { return JSON.parse(localStorage.getItem(LINK_OVERRIDE_KEY) || '{}'); }
   catch { return {}; }
 }
 
+function getLinkOverrides() {
+  return { ...remoteConfig.linkOverride, ...getLocalLinkOverrides() };
+}
+
 function setLinkOverride(id, url) {
-  const map = getLinkOverrides();
+  const map = getLocalLinkOverrides();
   const clean = (url || '').trim().replace(/^http:/, 'https:');
   if (/^https?:\/\//i.test(clean)) map[id] = clean; else delete map[id];
   localStorage.setItem(LINK_OVERRIDE_KEY, JSON.stringify(map));
@@ -90,7 +124,7 @@ function editLink(id) {
 }
 
 function toggleHide(id) {
-  const ids = getHiddenIds();
+  const ids = getLocalHiddenIds();
   if (ids.has(id)) ids.delete(id);
   else ids.add(id);
   saveHiddenIds(ids);
@@ -101,11 +135,11 @@ function toggleHide(id) {
 }
 
 function deleteAnime(id) {
-  const ids = getDeletedIds();
+  const ids = getLocalDeletedIds();
   ids.add(id);
   saveDeletedIds(ids);
   // 同时从隐藏列表中移除
-  const hidden = getHiddenIds();
+  const hidden = getLocalHiddenIds();
   hidden.delete(id);
   saveHiddenIds(hidden);
   if (cachedData) {
@@ -115,7 +149,7 @@ function deleteAnime(id) {
 }
 
 function restoreAnime(id) {
-  const ids = getDeletedIds();
+  const ids = getLocalDeletedIds();
   ids.delete(id);
   saveDeletedIds(ids);
   if (cachedData) {
@@ -521,21 +555,25 @@ function openManageModal() {
       const title = getAnimeTitle(anime);
       const cover = getCoverUrl(anime);
       const isHidden = hidden.has(anime.id);
+      const publishedHidden = remoteConfig.hidden.includes(anime.id);
       const weekday = anime.air_weekday ? WEEKDAYS[anime.air_weekday - 1].cn : '';
       return `
         <div class="flex items-center gap-3 p-2 rounded-lg ${isHidden ? 'bg-yellow-500/10 opacity-60' : 'bg-white/5'} transition-all">
           <img src="${cover}" alt="${title}" class="w-10 h-14 rounded object-cover flex-shrink-0" loading="lazy" />
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium truncate">${title}</p>
-            <p class="text-xs text-slate-500">${weekday}更新</p>
+            <p class="text-xs text-slate-500">${weekday}更新${publishedHidden ? ' · 已发布隐藏' : ''}</p>
           </div>
           <div class="flex gap-1">
-            <button
-              class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isHidden ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'}"
-              onclick="toggleHide(${anime.id}); openManageModal();"
-            >
-              ${isHidden ? '👁 显示' : '🚫 隐藏'}
-            </button>
+            ${publishedHidden
+              ? `<span class="px-2 py-1.5 rounded-lg text-xs bg-slate-500/20 text-slate-400" title="已写入 excluded.json，需编辑该文件并推送才能显示">📌 需改文件</span>`
+              : `<button
+                   class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isHidden ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'}"
+                   onclick="toggleHide(${anime.id}); openManageModal();"
+                 >
+                   ${isHidden ? '👁 显示' : '🚫 隐藏'}
+                 </button>`
+            }
             <button
               class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all bg-red-500/20 text-red-400 hover:bg-red-500/30"
               onclick="deleteAnime(${anime.id}); openManageModal();"
@@ -576,19 +614,23 @@ function openTrashModal() {
       const title = getAnimeTitle(anime);
       const cover = getCoverUrl(anime);
       const weekday = anime.air_weekday ? WEEKDAYS[anime.air_weekday - 1].cn : '';
+      const isPublished = remoteConfig.deleted.includes(anime.id);
       return `
         <div class="flex items-center gap-3 p-2 rounded-lg bg-red-500/5 opacity-50 transition-all">
           <img src="${cover}" alt="${title}" class="w-10 h-14 rounded object-cover flex-shrink-0 grayscale" loading="lazy" />
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium truncate">${title}</p>
-            <p class="text-xs text-slate-500">${weekday}更新</p>
+            <p class="text-xs text-slate-500">${weekday}更新${isPublished ? ' · 已发布' : ''}</p>
           </div>
-          <button
-            class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all bg-green-500/20 text-green-400 hover:bg-green-500/30"
-            onclick="restoreAnime(${anime.id})"
-          >
-            ♻ 恢复
-          </button>
+          ${isPublished
+            ? `<span class="px-2 py-1 rounded-lg text-xs bg-slate-500/20 text-slate-400" title="已写入 excluded.json，需编辑该文件并推送才能恢复">📌 需改文件</span>`
+            : `<button
+                 class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                 onclick="restoreAnime(${anime.id})"
+               >
+                 ♻ 恢复
+               </button>`
+          }
         </div>
       `;
     }).join('');
@@ -602,6 +644,38 @@ function closeTrashModal() {
   document.getElementById('trash-modal').classList.add('hidden');
 }
 
+// ==================== 发布配置 ====================
+
+function buildPublishConfig() {
+  return {
+    deleted: [...getDeletedIds()].sort((a, b) => a - b),
+    hidden: [...getHiddenIds()].sort((a, b) => a - b),
+    episodeOverride: getEpisodeOverrides(),
+    linkOverride: getLinkOverrides(),
+  };
+}
+
+function openPublishModal() {
+  document.getElementById('publish-text').value = JSON.stringify(buildPublishConfig(), null, 2);
+  document.getElementById('publish-modal').classList.remove('hidden');
+}
+
+function closePublishModal() {
+  document.getElementById('publish-modal').classList.add('hidden');
+}
+
+async function copyPublishConfig() {
+  const textarea = document.getElementById('publish-text');
+  try {
+    await navigator.clipboard.writeText(textarea.value);
+    alert('已复制！粘贴覆盖仓库里的 excluded.json，再 commit & push 即可。');
+  } catch {
+    textarea.select();
+    document.execCommand('copy');
+    alert('已复制（备用方式）！粘贴覆盖仓库里的 excluded.json，再 commit & push 即可。');
+  }
+}
+
 // ==================== 主流程 ====================
 
 async function loadData() {
@@ -609,6 +683,7 @@ async function loadData() {
   hideAllStates();
 
   try {
+    await loadRemoteConfig();
     const apiData = await fetchAnimeData();
     const groups = getGroupsFromApi(apiData);
     cachedData = groups;
@@ -646,4 +721,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('trash-modal').addEventListener('click', (e) => {
     if (e.target.id === 'trash-modal') closeTrashModal();
   });
+
+  document.getElementById('publish-btn').addEventListener('click', openPublishModal);
+  document.getElementById('publish-close').addEventListener('click', closePublishModal);
+  document.getElementById('publish-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'publish-modal') closePublishModal();
+  });
+  document.getElementById('publish-copy').addEventListener('click', copyPublishConfig);
 });
