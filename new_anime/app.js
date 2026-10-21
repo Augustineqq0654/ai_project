@@ -234,11 +234,13 @@ function getAnimeTitle(anime) {
   return anime.name_cn || anime.name || '未知标题';
 }
 
-// 获取封面图：本地 covers/ 优先，缺失时兜底远程图
-function getCoverUrl(anime) {
-  const localCover = `covers/${anime.id}.jpg`;
-  const remoteCover = anime.images ? (anime.images.large || anime.images.common || anime.images.medium || '') : '';
-  return remoteCover ? localCover : remoteCover;
+// 获取封面图候选：本地 covers/ 优先，加载失败时回退到 Bangumi 原图
+function getCoverUrls(anime) {
+  const images = anime.images || {};
+  return {
+    local: `covers/${anime.id}.jpg`,
+    remote: images.large || images.common || images.medium || '',
+  };
 }
 
 // 根据开播日期计算当前更新到第几集（假设每周更新一集）
@@ -359,7 +361,7 @@ function updateWeekdayCounts(groups) {
 
 function renderAnimeCard(anime) {
   const title = getAnimeTitle(anime);
-  const cover = getCoverUrl(anime);
+  const covers = getCoverUrls(anime);
   const detailUrl = getDetailUrl(anime);
   const hasCustomLink = !!getLinkOverrides()[anime.id];
   const score = anime.rating?.score || 0;
@@ -392,8 +394,8 @@ function renderAnimeCard(anime) {
       </div>
       <div class="cover-container aspect-[3/4] bg-slate-800">
         <a href="${detailUrl}" target="_blank" rel="noopener noreferrer" class="block w-full h-full" aria-label="${title}">
-          ${cover
-            ? `<img src="${cover}" alt="${title}" loading="lazy" class="w-full h-full object-cover" />`
+          ${covers.remote
+            ? `<img src="${covers.local}" alt="${title}" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='${covers.remote}'" />`
             : `<div class="w-full h-full flex items-center justify-center text-slate-600 text-4xl">📺</div>`
           }
         </a>
@@ -553,13 +555,13 @@ function openManageModal() {
   } else {
     html = visibleAnime.map(anime => {
       const title = getAnimeTitle(anime);
-      const cover = getCoverUrl(anime);
+      const covers = getCoverUrls(anime);
       const isHidden = hidden.has(anime.id);
       const publishedHidden = remoteConfig.hidden.includes(anime.id);
       const weekday = anime.air_weekday ? WEEKDAYS[anime.air_weekday - 1].cn : '';
       return `
         <div class="flex items-center gap-3 p-2 rounded-lg ${isHidden ? 'bg-yellow-500/10 opacity-60' : 'bg-white/5'} transition-all">
-          <img src="${cover}" alt="${title}" class="w-10 h-14 rounded object-cover flex-shrink-0" loading="lazy" />
+          <img src="${covers.local}" alt="${title}" class="w-10 h-14 rounded object-cover flex-shrink-0" loading="lazy" onerror="this.onerror=null;this.src='${covers.remote}'" />
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium truncate">${title}</p>
             <p class="text-xs text-slate-500">${weekday}更新${publishedHidden ? ' · 已发布隐藏' : ''}</p>
@@ -612,12 +614,12 @@ function openTrashModal() {
   } else {
     html = deletedAnime.map(anime => {
       const title = getAnimeTitle(anime);
-      const cover = getCoverUrl(anime);
+      const covers = getCoverUrls(anime);
       const weekday = anime.air_weekday ? WEEKDAYS[anime.air_weekday - 1].cn : '';
       const isPublished = remoteConfig.deleted.includes(anime.id);
       return `
         <div class="flex items-center gap-3 p-2 rounded-lg bg-red-500/5 opacity-50 transition-all">
-          <img src="${cover}" alt="${title}" class="w-10 h-14 rounded object-cover flex-shrink-0 grayscale" loading="lazy" />
+          <img src="${covers.local}" alt="${title}" class="w-10 h-14 rounded object-cover flex-shrink-0 grayscale" loading="lazy" onerror="this.onerror=null;this.src='${covers.remote}'" />
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium truncate">${title}</p>
             <p class="text-xs text-slate-500">${weekday}更新${isPublished ? ' · 已发布' : ''}</p>
