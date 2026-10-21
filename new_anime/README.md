@@ -167,6 +167,14 @@ new_anime/
 **Q：新番封面显示不出来 / 想让封面加载更快？**
 页面加载失败会自动回退远程图，一般不会裂图。若想固化为本地缓存，运行 `node scripts/fetch-covers.js` 后提交 `covers/`。
 
+**Q：`node scripts/fetch-covers.js` 执行超时/失败？**
+多为终端连不上 Bangumi（API 为 https、封面图为 http，两者都要过代理）。先设置代理环境变量再跑（端口按代理软件实际值，Clash Verge 混合端口默认 7897）：
+```powershell
+$env:HTTPS_PROXY = "http://127.0.0.1:7897"
+node scripts/fetch-covers.js
+```
+仍失败则运行 `node scripts/fetch-covers.js doctor` 分步排查，它会逐步检查环境变量、代理端口连通性、CONNECT 隧道、API 请求，输出首个断点及处理建议。注意新开的终端窗口不会继承已设置的环境变量，需重新设置。
+
 **Q：本地打开 `index.html` 时控制台报 `excluded.json` 加载失败？**
 `file://` 协议下浏览器禁止 fetch 本地 JSON，属正常现象，不影响番剧浏览。用本地 HTTP 服务器运行即可消除。
 
