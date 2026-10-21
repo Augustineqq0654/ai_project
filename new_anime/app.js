@@ -256,28 +256,6 @@ function getCurrentEpisode(airDate) {
   return Math.floor(daysDiff / 7) + 1;
 }
 
-// 计算下次更新信息
-function getNextUpdateInfo(airWeekday) {
-  if (!airWeekday) return '';
-  // airWeekday: 1=周一 ... 7=周日
-  const todayIdx = getTodayIndex(); // 0=周一 ... 6=周日
-  const targetIdx = airWeekday - 1;
-
-  let daysUntil = targetIdx - todayIdx;
-  if (daysUntil < 0) daysUntil += 7;
-
-  if (daysUntil === 0) return '今日更新';
-  if (daysUntil === 1) return '明日更新';
-  return `${daysUntil}天后更新`;
-}
-
-// 格式化开播日期
-function formatAirDate(airDate) {
-  if (!airDate) return '';
-  const d = new Date(airDate + 'T00:00:00');
-  return `${d.getMonth() + 1}月${d.getDate()}日`;
-}
-
 // ==================== API 请求 ====================
 
 async function fetchAnimeData() {
@@ -364,17 +342,13 @@ function renderAnimeCard(anime) {
   const covers = getCoverUrls(anime);
   const detailUrl = getDetailUrl(anime);
   const hasCustomLink = !!getLinkOverrides()[anime.id];
-  const score = anime.rating?.score || 0;
   const airDate = anime.air_date || '';
-  const airWeekday = anime.air_weekday || 0;
 
-  // 计算当前集数（支持手动覆盖）和下次更新
+  // 计算当前集数（支持手动覆盖）
   const autoEp = getCurrentEpisode(airDate);
   const overrideEp = getEpisodeOverrides()[anime.id] || 0;
   const currentEp = overrideEp || autoEp;
   const isManual = overrideEp > 0;
-  const nextUpdate = getNextUpdateInfo(airWeekday);
-  const notStarted = currentEp === 0 && airDate;
 
   return `
     <div class="anime-card group relative rounded-xl overflow-hidden bg-white/5 border border-white/10 backdrop-blur-sm">
@@ -410,20 +384,7 @@ function renderAnimeCard(anime) {
         <h3 class="font-semibold text-sm leading-tight mb-2 line-clamp-2">
           <a href="${detailUrl}" target="_blank" rel="noopener noreferrer" class="group-hover:text-pink-300 transition-colors">${title}${hasCustomLink ? ' <span class="text-amber-300" title="自定义链接">🔗</span>' : ''}</a>
         </h3>
-        <div class="space-y-1">
-          ${notStarted
-            ? `<p class="text-xs text-blue-300">${formatAirDate(airDate)} 开播</p>`
-            : `<p class="text-xs text-pink-300">${currentEp > 0 ? `更新至第${currentEp}集` : ''}</p>`
-          }
-          ${nextUpdate ? `
-            <div class="flex items-center gap-1.5 text-xs">
-              <span class="pulse-dot w-1.5 h-1.5 rounded-full bg-green-400"></span>
-              <span class="text-slate-300">${nextUpdate}</span>
-            </div>` : ''}
-          ${airDate ? `<p class="text-xs text-slate-500">${formatAirDate(airDate)}开播</p>` : ''}
-        </div>
-        ${score > 0 ? `
-          <div class="mt-2 text-xs text-yellow-400">★ ${score.toFixed(1)}</div>` : ''}
+        ${currentEp > 0 ? `<p class="text-xs text-pink-300">更新至第${currentEp}集</p>` : ''}
       </div>
     </div>
   `;
