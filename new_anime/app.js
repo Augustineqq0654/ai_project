@@ -3,13 +3,13 @@
 const BANGUMI_API = 'https://api.bgm.tv/calendar';
 
 const WEEKDAYS = [
-  { cn: '周一', color: '#ff6b6b' },
-  { cn: '周二', color: '#ffa94d' },
-  { cn: '周三', color: '#ffd43b' },
-  { cn: '周四', color: '#69db7c' },
-  { cn: '周五', color: '#4dabf7' },
-  { cn: '周六', color: '#9775fa' },
-  { cn: '周日', color: '#f783ac' },
+  { cn: '周一' },
+  { cn: '周二' },
+  { cn: '周三' },
+  { cn: '周四' },
+  { cn: '周五' },
+  { cn: '周六' },
+  { cn: '周日' },
 ];
 
 // 当前选中的天
@@ -302,8 +302,8 @@ function renderWeekdayNav() {
     const isToday = i === todayIdx;
     btn.innerHTML = `
       <span class="block">${wd.cn}</span>
-      <span class="block text-[10px] mt-0.5 day-count text-slate-500"></span>
-      ${isToday ? '<span class="block text-[9px] mt-0.5 text-pink-400">今天</span>' : ''}
+      <span class="block text-[10px] mt-0.5 day-count text-zinc-500"></span>
+      ${isToday ? '<span class="block text-[9px] mt-0.5 text-amber-400">今天</span>' : ''}
     `;
 
     btn.onclick = () => selectDay(i);
@@ -322,16 +322,6 @@ function updateWeekdayCounts(groups) {
     countEl.textContent = count > 0 ? `${count}部` : '—';
     const isActive = i === selectedDay;
     tab.classList.toggle('active', isActive);
-
-    if (isActive) {
-      tab.style.color = WEEKDAYS[i].color;
-      tab.style.borderBottomColor = WEEKDAYS[i].color;
-      tab.style.borderBottomWidth = '2px';
-      tab.style.borderBottomStyle = 'solid';
-    } else {
-      tab.style.color = '';
-      tab.style.borderBottom = '';
-    }
   });
 }
 
@@ -353,7 +343,7 @@ function renderAnimeCard(anime) {
   return `
     <div class="anime-card group relative rounded-xl overflow-hidden bg-white/5 border border-white/10 backdrop-blur-sm">
       <div class="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-        <button class="w-7 h-7 rounded-full bg-black/60 hover:bg-yellow-500/80 backdrop-blur-sm text-xs flex items-center justify-center transition-all"
+        <button class="w-7 h-7 rounded-full bg-black/60 hover:bg-zinc-700/80 backdrop-blur-sm text-xs flex items-center justify-center transition-all"
                 onclick="toggleHide(${anime.id})" title="隐藏此番剧">
           🚫
         </button>
@@ -361,30 +351,30 @@ function renderAnimeCard(anime) {
                 onclick="deleteAnime(${anime.id})" title="删除此番剧">
           🗑
         </button>
-        <button class="w-7 h-7 rounded-full bg-black/60 hover:bg-sky-500/80 backdrop-blur-sm text-xs flex items-center justify-center transition-all"
+        <button class="w-7 h-7 rounded-full bg-black/60 hover:bg-amber-500/80 backdrop-blur-sm text-xs flex items-center justify-center transition-all"
                 data-link-edit="${anime.id}" onclick="editLink(${anime.id})" title="${hasCustomLink ? '修改自定义链接' : '设置自定义链接（留空恢复默认）'}">
           🔗
         </button>
       </div>
-      <div class="cover-container aspect-[3/4] bg-slate-800">
+      <div class="cover-container aspect-[3/4] bg-zinc-800">
         <a href="${detailUrl}" target="_blank" rel="noopener noreferrer" class="block w-full h-full" aria-label="${title}">
           ${covers.remote
             ? `<img src="${covers.local}" alt="${title}" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='${covers.remote}'" />`
-            : `<div class="w-full h-full flex items-center justify-center text-slate-600 text-4xl">📺</div>`
+            : `<div class="w-full h-full flex items-center justify-center text-zinc-600 text-4xl">📺</div>`
           }
         </a>
         ${currentEp > 0 ? `
           <button type="button" title="点击修改集数（留空恢复自动）" data-ep-edit="${anime.id}"
-                  class="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm text-xs font-semibold text-pink-300 hover:bg-pink-950/80 hover:ring-1 hover:ring-pink-500/60 transition-all"
+                  class="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm text-xs font-semibold text-amber-300 hover:bg-zinc-900/80 hover:ring-1 hover:ring-amber-500/60 transition-all"
                   onclick="editEpisode(${anime.id}, ${autoEp})">
             更新至第${currentEp}集${isManual ? ' ✏️' : ''}
           </button>` : ''}
       </div>
       <div class="p-3">
         <h3 class="font-semibold text-sm leading-tight mb-2 line-clamp-2">
-          <a href="${detailUrl}" target="_blank" rel="noopener noreferrer" class="group-hover:text-pink-300 transition-colors">${title}${hasCustomLink ? ' <span class="text-amber-300" title="自定义链接">🔗</span>' : ''}</a>
+          <a href="${detailUrl}" target="_blank" rel="noopener noreferrer" class="group-hover:text-amber-300 transition-colors">${title}${hasCustomLink ? ' <span class="text-amber-300" title="自定义链接">🔗</span>' : ''}</a>
         </h3>
-        ${currentEp > 0 ? `<p class="text-xs text-pink-300">更新至第${currentEp}集</p>` : ''}
+        ${currentEp > 0 ? `<p class="text-xs text-amber-300">更新至第${currentEp}集</p>` : ''}
       </div>
     </div>
   `;
@@ -402,7 +392,7 @@ function editEpisode(id, autoEp) {
   input.min = '0';
   input.step = '1';
   input.max = '9999';
-  input.className = 'w-20 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm text-xs font-semibold text-pink-300 outline-none ring-1 ring-pink-500/60';
+  input.className = 'w-20 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm text-xs font-semibold text-amber-300 outline-none ring-1 ring-amber-500/60';
   input.value = overrides[id] != null ? overrides[id] : (autoEp || '');
   input.placeholder = autoEp > 0 ? `自动 ${autoEp}` : '自动';
   input.title = '输入集数，留空=恢复自动；回车保存 / Esc 取消';
@@ -448,20 +438,19 @@ function renderDay(groups) {
   container.innerHTML = `
     <div class="day-column">
       <div class="flex items-center gap-2 mb-4">
-        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-white"
-             style="background: linear-gradient(135deg, ${wd.color}, ${wd.color}99)">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-zinc-200 bg-zinc-800">
         </div>
         <div>
-          <h2 class="font-bold text-base ${isToday ? 'text-pink-400' : ''}">
+          <h2 class="font-bold text-base ${isToday ? 'text-amber-400' : ''}">
             ${wd.cn}
-            ${isToday ? '<span class="text-xs ml-1 px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-400 align-middle">今天</span>' : ''}
+            ${isToday ? '<span class="text-xs ml-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 align-middle">今天</span>' : ''}
           </h2>
-          <p class="text-xs text-slate-500">${animeList.length} 部更新</p>
+          <p class="text-xs text-zinc-500">${animeList.length} 部更新</p>
         </div>
       </div>
       <div class="${gridCols}">
         ${animeList.length === 0
-          ? `<div class="col-span-full text-center py-12 text-slate-600 text-sm">🍃 本日无更新</div>`
+          ? `<div class="col-span-full text-center py-12 text-zinc-600 text-sm">🍃 本日无更新</div>`
           : animeList.map(renderAnimeCard).join('')}
       </div>
     </div>
@@ -512,7 +501,7 @@ function openManageModal() {
   let html = '';
 
   if (visibleAnime.length === 0) {
-    html = '<p class="text-slate-500 text-center py-4 text-sm">暂无番剧</p>';
+    html = '<p class="text-zinc-500 text-center py-4 text-sm">暂无番剧</p>';
   } else {
     html = visibleAnime.map(anime => {
       const title = getAnimeTitle(anime);
@@ -521,17 +510,17 @@ function openManageModal() {
       const publishedHidden = remoteConfig.hidden.includes(anime.id);
       const weekday = anime.air_weekday ? WEEKDAYS[anime.air_weekday - 1].cn : '';
       return `
-        <div class="flex items-center gap-3 p-2 rounded-lg ${isHidden ? 'bg-yellow-500/10 opacity-60' : 'bg-white/5'} transition-all">
+        <div class="flex items-center gap-3 p-2 rounded-lg ${isHidden ? 'bg-zinc-500/10 opacity-60' : 'bg-white/5'} transition-all">
           <img src="${covers.local}" alt="${title}" class="w-10 h-14 rounded object-cover flex-shrink-0" loading="lazy" onerror="this.onerror=null;this.src='${covers.remote}'" />
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium truncate">${title}</p>
-            <p class="text-xs text-slate-500">${weekday}更新${publishedHidden ? ' · 已发布隐藏' : ''}</p>
+            <p class="text-xs text-zinc-500">${weekday}更新${publishedHidden ? ' · 已发布隐藏' : ''}</p>
           </div>
           <div class="flex gap-1">
             ${publishedHidden
-              ? `<span class="px-2 py-1.5 rounded-lg text-xs bg-slate-500/20 text-slate-400" title="已写入 excluded.json，需编辑该文件并推送才能显示">📌 需改文件</span>`
+              ? `<span class="px-2 py-1.5 rounded-lg text-xs bg-zinc-500/20 text-zinc-400" title="已写入 excluded.json，需编辑该文件并推送才能显示">📌 需改文件</span>`
               : `<button
-                   class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isHidden ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'}"
+                   class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isHidden ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-zinc-500/20 text-zinc-300 hover:bg-zinc-500/30'}"
                    onclick="toggleHide(${anime.id}); openManageModal();"
                  >
                    ${isHidden ? '👁 显示' : '🚫 隐藏'}
@@ -571,7 +560,7 @@ function openTrashModal() {
   let html = '';
 
   if (deletedAnime.length === 0) {
-    html = '<p class="text-slate-500 text-center py-8 text-sm">🗑 回收站为空</p>';
+    html = '<p class="text-zinc-500 text-center py-8 text-sm">🗑 回收站为空</p>';
   } else {
     html = deletedAnime.map(anime => {
       const title = getAnimeTitle(anime);
@@ -583,10 +572,10 @@ function openTrashModal() {
           <img src="${covers.local}" alt="${title}" class="w-10 h-14 rounded object-cover flex-shrink-0 grayscale" loading="lazy" onerror="this.onerror=null;this.src='${covers.remote}'" />
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium truncate">${title}</p>
-            <p class="text-xs text-slate-500">${weekday}更新${isPublished ? ' · 已发布' : ''}</p>
+            <p class="text-xs text-zinc-500">${weekday}更新${isPublished ? ' · 已发布' : ''}</p>
           </div>
           ${isPublished
-            ? `<span class="px-2 py-1 rounded-lg text-xs bg-slate-500/20 text-slate-400" title="已写入 excluded.json，需编辑该文件并推送才能恢复">📌 需改文件</span>`
+            ? `<span class="px-2 py-1 rounded-lg text-xs bg-zinc-500/20 text-zinc-400" title="已写入 excluded.json，需编辑该文件并推送才能恢复">📌 需改文件</span>`
             : `<button
                  class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all bg-green-500/20 text-green-400 hover:bg-green-500/30"
                  onclick="restoreAnime(${anime.id})"

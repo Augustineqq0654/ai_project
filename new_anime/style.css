@@ -13,7 +13,7 @@
 }
 .anime-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px -15px rgba(236, 72, 153, 0.4);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.55);
 }
 
 /* 封面容器 */
@@ -61,6 +61,7 @@ html {
 }
 .weekday-tab.active {
   position: relative;
+  color: #fbbf24;
 }
 .weekday-tab.active::after {
   content: '';
@@ -71,4 +72,5 @@ html {
   width: 60%;
   height: 2px;
   border-radius: 1px;
+  background: #fbbf24;
 }
