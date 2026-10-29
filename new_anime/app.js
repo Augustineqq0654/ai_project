@@ -22,6 +22,11 @@ let cachedData = null;
 const REMOTE_CONFIG_URL = 'excluded.json';
 let remoteConfig = { deleted: [], hidden: [], episodeOverride: {}, linkOverride: {} };
 
+// ==================== 本地数据快照 ====================
+// data/calendar.json 由 scripts/fetch-data.js 生成，随仓库发布。
+// 页面优先用它渲染（国内网络访问不了 Bangumi 时也能打开），随后后台尝试实时接口并静默替换。
+const SNAPSHOT_URL = 'data/calendar.json';
+
 async function loadRemoteConfig() {
   try {
     const res = await fetch(`${REMOTE_CONFIG_URL}?v=${Date.now()}`, { cache: 'no-store' });
@@ -258,20 +263,39 @@ function getCurrentEpisode(airDate) {
 
 // ==================== API 请求 ====================
 
-async function fetchAnimeData() {
-  const response = await fetch(BANGUMI_API, {
-    headers: {
-      'Accept': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (compatible; AnimeTracker/1.0)',
-    },
-  });
+async function fetchAnimeData(timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) throw new Error(`接口请求失败：${response.status}`);
-  const json = await response.json();
+  try {
+    const response = await fetch(BANGUMI_API, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; AnimeTracker/1.0)',
+      },
+      signal: controller.signal,
+    });
 
-  // Bangumi 返回 7 天的数据，按 weekday.id 排序（1=周一 ~ 7=周日）
-  // 每项: { weekday: { cn, en, id }, items: [...] }
-  return json;
+    if (!response.ok) throw new Error(`接口请求失败：${response.status}`);
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// 读取本地数据快照（同源静态文件，Bangumi 不可达时也能用）
+async function fetchSnapshot() {
+  try {
+    const res = await fetch(`${SNAPSHOT_URL}?v=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return Array.isArray(json.days) && json.days.length > 0
+      ? { updatedAt: json.updatedAt || '', days: json.days }
+      : null;
+  } catch {
+    // 快照不存在（未生成）或本地 file:// 打开时失败，降级为仅实时接口
+    return null;
+  }
 }
 
 // ==================== 数据处理 ====================
@@ -630,20 +654,54 @@ async function copyPublishConfig() {
 
 // ==================== 主流程 ====================
 
+// 将 API/快照数据渲染到页面，返回番剧总数
+function applyData(apiData) {
+  const groups = getGroupsFromApi(apiData);
+  cachedData = groups;
+  updateWeekdayCounts(groups);
+  renderDay(groups);
+  return groups.reduce((sum, g) => sum + g.length, 0);
+}
+
+// 页脚的数据日期提示：使用快照时显示快照日期，实时数据时不显示
+function showDataDate(updatedAt) {
+  const el = document.getElementById('data-date');
+  if (!el) return;
+  if (updatedAt) {
+    el.textContent = `数据更新于 ${String(updatedAt).slice(0, 10)}`;
+    el.classList.remove('hidden');
+  } else {
+    el.textContent = '';
+    el.classList.add('hidden');
+  }
+}
+
 async function loadData() {
   showLoading(true);
   hideAllStates();
 
   try {
     await loadRemoteConfig();
-    const apiData = await fetchAnimeData();
-    const groups = getGroupsFromApi(apiData);
-    cachedData = groups;
 
-    updateWeekdayCounts(groups);
-    renderDay(groups);
+    // 1) 先用本地快照渲染：Bangumi 不可达时也能立即显示，首屏也更快
+    const snapshot = await fetchSnapshot();
+    let total = 0;
+    if (snapshot) {
+      total = applyData(snapshot.days);
+      showDataDate(snapshot.updatedAt);
+      showLoading(false);
+    }
 
-    const total = groups.reduce((sum, g) => sum + g.length, 0);
+    // 2) 后台尝试实时接口：成功则静默替换为最新数据，失败则继续用快照
+    try {
+      const apiData = await fetchAnimeData();
+      total = applyData(apiData);
+      showDataDate('');
+    } catch (err) {
+      console.warn('实时接口不可用，使用本地快照：', err);
+      if (!snapshot) throw err;
+    }
+
     if (total === 0) {
       document.getElementById('empty-state').classList.remove('hidden');
     }

@@ -29,6 +29,12 @@
 - 优先加载本地缓存封面 `covers/{Bangumi ID}.jpg`（快速、不依赖外部图床）
 - 本地缺失或加载失败时，自动回退到 Bangumi 远程原图（`onerror` 兜底），页面永不出现裂图
 
+### 数据加载策略（应对 Bangumi 访问受限）
+- 优先渲染仓库内置的数据快照 `data/calendar.json`（同源静态文件，国内网络无代理也能立即打开）
+- 快照渲染完成后，后台再尝试实时拉取 Bangumi API（超时 8 秒）：成功则静默替换为最新数据，失败则继续使用快照
+- 使用快照时页脚会显示「数据更新于 YYYY-MM-DD」，便于判断数据新鲜度
+- 快照由维护者定期用 `node scripts/fetch-data.js` 更新（见维护者章节）
+
 ## 快速开始
 
 ### 在线访问
@@ -103,7 +109,23 @@ git push
   node scripts/fetch-covers.js doctor
   ```
 
-**3. 维护翻译表与过滤规则**（可选）
+**3. 更新数据快照**
+
+`data/calendar.json` 是给「访问不了 Bangumi 的访客」（如国内无代理网络）兜底的数据。新番列表变动时（开新季度、番剧增删）更新：
+
+```bash
+node scripts/fetch-data.js
+# 输出示例：拉取 Bangumi 番组日历 ... → 已写入 data/calendar.json（7 天 / 245 部 / 92.3 KB）
+
+git add data/calendar.json
+git commit -m "更新数据快照"
+git push
+```
+
+- 终端连不上 Bangumi 时同样先设代理环境变量（同上方封面脚本）
+- 只保存页面用到的字段（约 100 KB）；脚本校验到 0 部数据时会拒绝覆盖旧快照
+
+**4. 维护翻译表与过滤规则**（可选）
 
 - 某条目缺少中文名或翻译不满意 → 修改 `app.js` 中的 `TITLE_CN_OVERRIDE`
 - 有国漫漏网 → 在 `app.js` 的 `CN_NAME_PATTERNS` 黑名单中追加关键词
@@ -143,11 +165,14 @@ new_anime/
 ├── app.js                  # 全部业务逻辑
 ├── style.css               # 自定义样式
 ├── excluded.json           # 共享配置（所有访客读取，维护者推送更新）
+├── data/
+│   └── calendar.json       # 数据快照（Bangumi 不可达时兜底，由 fetch-data.js 生成）
 ├── covers/                 # 本地图库，文件名 = {Bangumi ID}.jpg
 │   ├── 712926.jpg
 │   └── ...
 └── scripts/
-    └── fetch-covers.js     # 批量下载缺失封面（Node.js，无第三方依赖）
+    ├── fetch-covers.js     # 批量下载缺失封面（Node.js，无第三方依赖）
+    └── fetch-data.js       # 生成数据快照 data/calendar.json（Node.js，无第三方依赖）
 ```
 
 ## 数据与隐私
@@ -182,7 +207,10 @@ node scripts/fetch-covers.js
 自动推算基于开播日期按每周一集估算。点击集数角标手动指定即可，0 或留空恢复自动。
 
 **Q：数据多久更新一次？**
-番剧数据每次打开页面/点刷新时实时从 Bangumi API 获取；共享配置每次打开强制拉取最新版。Bangumi 日历随新季度更新，无需本项目做任何操作。
+页面打开时先用仓库内置快照 `data/calendar.json` 秒开，随后后台尝试实时拉取 Bangumi API，成功会静默替换成最新数据；共享配置每次打开强制拉取最新版。快照由维护者在新番列表变动时更新（见「更新数据快照」）。
+
+**Q：国内网络打开页面，番剧列表出不来？**
+之前数据完全依赖实时接口，Bangumi 不可达时会显示加载失败。现在页面优先渲染仓库内置的数据快照 `data/calendar.json`，只要该文件存在并已推送，国内无代理也能正常打开（页脚会标注「数据更新于 YYYY-MM-DD」）。若仍失败，说明快照文件缺失，或你的网络连 GitHub Pages 本身都不通。
 
 ## 已知限制
 
