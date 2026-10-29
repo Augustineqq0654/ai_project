@@ -75,10 +75,6 @@
     716967
   ],
   "hidden": [],
-  "episodeOverride": {
-    "418229": 3,
-    "593565": 2,
-    "634587": 3
-  },
+  "episodeOverride": {},
   "linkOverride": {}
 }

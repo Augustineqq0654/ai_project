@@ -9,6 +9,7 @@ const { URL } = require('url');
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const DATA_FILE = path.join(DATA_DIR, 'calendar.json');
 const BANGUMI_API = 'https://api.bgm.tv/calendar';
+const EPISODE_API = 'https://api.bgm.tv/v0/episodes';
 const REQUEST_TIMEOUT_MS = 30000;
 const MAX_REDIRECTS = 3;
 const UA = 'AnimeTracker/1.0 (anime calendar data snapshot script)';
@@ -173,12 +174,36 @@ async function fetchJson(url) {
   }
 }
 
+// ============ 剧集表 ============
+
+// 逐部拉取本篇剧集的播出日期（v0 API），页面据此精确推算"更新至第几集"
+// 返回 [[集数, 'YYYY-MM-DD'], ...]，无日期的条目跳过
+async function fetchEpisodeSchedule(id) {
+  const eps = [];
+  const limit = 100;
+  let offset = 0;
+  for (;;) {
+    const page = await fetchJson(`${EPISODE_API}?subject_id=${id}&type=0&limit=${limit}&offset=${offset}`);
+    const chunk = Array.isArray(page.data) ? page.data : [];
+    for (const ep of chunk) {
+      if (!ep || !ep.airdate) continue;
+      const num = typeof ep.ep === 'number' ? ep.ep : (typeof ep.sort === 'number' ? ep.sort : null);
+      if (num === null) continue;
+      eps.push([num, ep.airdate]);
+    }
+    offset += chunk.length;
+    if (chunk.length < limit) break;
+    if (typeof page.total === 'number' && offset >= page.total) break;
+  }
+  return eps;
+}
+
 // ============ 数据裁剪 ============
 
-// 页面只用到这些字段（见 app.js：getAnimeTitle / getCoverUrls / getCurrentEpisode / getDetailUrl）
-function pickItem(it) {
+// 页面只用到这些字段（见 app.js：getAnimeTitle / getCoverUrls / getCurrentEpisodeFromSchedule / getDetailUrl）
+function pickItem(it, eps) {
   const images = it.images || {};
-  return {
+  const out = {
     id: it.id,
     name: it.name || '',
     name_cn: it.name_cn || '',
@@ -191,6 +216,9 @@ function pickItem(it) {
       medium: images.medium || '',
     },
   };
+  // 有剧集表时附上，页面用真实播出日期精算集数；缺失则页面回退日期估算
+  if (Array.isArray(eps) && eps.length) out.eps = eps;
+  return out;
 }
 
 // ============ 主流程 ============
@@ -208,9 +236,33 @@ async function main() {
   const data = await fetchJson(BANGUMI_API);
   if (!Array.isArray(data)) throw new Error('API 返回格式异常：期望数组');
 
+  // 逐部拉取剧集播出日期（限速 500ms/请求），用于页面精确显示当前集数
+  const ids = [...new Set(data.flatMap((d) => ((d && d.items) || []).map((it) => it.id)))];
+  console.log(`拉取每部番的剧集表（共 ${ids.length} 部，约需 1-2 分钟）...`);
+  const schedules = new Map();
+  let epOk = 0;
+  let epFailed = 0;
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    try {
+      const eps = await fetchEpisodeSchedule(id);
+      if (eps.length) schedules.set(id, eps);
+      epOk++;
+    } catch (e) {
+      epFailed++;
+      console.error('episodes fail', id, e.message.replace(/\n\s*/g, ' | '));
+    }
+    if ((i + 1) % 10 === 0 || i + 1 === ids.length) console.log(`  进度 ${i + 1}/${ids.length}`);
+    await new Promise((r) => setTimeout(r, 500)); // 固定间隔，对 Bangumi 友好
+  }
+  console.log(`episodes: ok ${epOk} failed ${epFailed}`);
+  if (epFailed > 0) {
+    console.error('警告：部分剧集信息缺失，这些条目在页面会回退为开播日期估算，可重跑脚本补齐');
+  }
+
   const days = data.map((d) => ({
     weekday: { id: d && d.weekday ? d.weekday.id : 0 },
-    items: ((d && d.items) || []).map(pickItem),
+    items: ((d && d.items) || []).map((it) => pickItem(it, schedules.get(it.id))),
   }));
 
   const count = days.reduce((sum, d) => sum + d.items.length, 0);

@@ -15,6 +15,8 @@ const WEEKDAYS = [
 // 当前选中的天
 let selectedDay = 0;
 let cachedData = null;
+// 快照里的剧集播出表（id → [[集数, 'YYYY-MM-DD'], ...]），实时数据渲染时也复用
+let snapshotSchedules = null;
 
 // ==================== 共享配置（excluded.json）====================
 // 仓库根目录的共享配置文件，所有访客打开页面都会读取。
@@ -248,7 +250,7 @@ function getCoverUrls(anime) {
   };
 }
 
-// 根据开播日期计算当前更新到第几集（假设每周更新一集）
+// 根据开播日期计算当前更新到第几集（假设每周更新一集，作为无剧集表时的兜底）
 function getCurrentEpisode(airDate) {
   if (!airDate) return 0;
   const start = new Date(airDate + 'T00:00:00');
@@ -259,6 +261,21 @@ function getCurrentEpisode(airDate) {
 
   const daysDiff = Math.floor((today - start) / 86400000);
   return Math.floor(daysDiff / 7) + 1;
+}
+
+// 依据剧集表精确计算当前更新到第几集：取"已播出日期 <= 今天"的最后一集
+// 能正确反映停播、特番、延期等情况（日期缺失的集跳过）
+function getCurrentEpisodeFromSchedule(eps) {
+  if (!Array.isArray(eps) || eps.length === 0) return 0;
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  let aired = 0;
+  for (const ep of eps) {
+    if (!Array.isArray(ep) || ep.length < 2) continue;
+    const [num, date] = ep;
+    if (typeof date === 'string' && date && date <= todayStr && num > aired) aired = num;
+  }
+  return aired;
 }
 
 // ==================== API 请求 ====================
@@ -358,8 +375,11 @@ function renderAnimeCard(anime) {
   const hasCustomLink = !!getLinkOverrides()[anime.id];
   const airDate = anime.air_date || '';
 
-  // 计算当前集数（支持手动覆盖）
-  const autoEp = getCurrentEpisode(airDate);
+  // 计算当前集数（支持手动覆盖）：优先用剧集表的真实播出日期，缺失时回退开播日期估算
+  const schedule = (Array.isArray(anime.eps) && anime.eps.length)
+    ? anime.eps
+    : (snapshotSchedules && snapshotSchedules.get(anime.id)) || null;
+  const autoEp = schedule ? getCurrentEpisodeFromSchedule(schedule) : getCurrentEpisode(airDate);
   const overrideEp = getEpisodeOverrides()[anime.id] || 0;
   const currentEp = overrideEp || autoEp;
   const isManual = overrideEp > 0;
@@ -687,6 +707,12 @@ async function loadData() {
     const snapshot = await fetchSnapshot();
     let total = 0;
     if (snapshot) {
+      snapshotSchedules = new Map();
+      for (const day of snapshot.days) {
+        for (const it of (day && day.items) || []) {
+          if (it && Array.isArray(it.eps) && it.eps.length) snapshotSchedules.set(it.id, it.eps);
+        }
+      }
       total = applyData(snapshot.days);
       showDataDate(snapshot.updatedAt);
       showLoading(false);
