@@ -42,13 +42,20 @@
 部署到 GitHub Pages 后，直接访问仓库对应的 Pages 地址即可（例如 `https://<用户名>.github.io/<仓库名>/`）。
 
 ### 本地运行
-推荐用本地 HTTP 服务器（`file://` 直接双击打开也能浏览番剧，但共享配置 `excluded.json` 会因浏览器 CORS 限制加载失败）：
+推荐用本地 HTTP 服务器。`file://` 直接双击打开页面的番剧能显示，但浏览器会因 CORS 拒绝读取 `excluded.json` 和 `data/calendar.json`，共享配置与数据快照都会失效。
+
+**Windows：双击 `start.bat`** 即可（自动启动服务并打开浏览器）
+
+- 优先用 Node.js（`scripts/serve.js`，自动开浏览器，端口被占用时自动顺延 8001、8002…）
+- 没装 Node.js 时退回 Python（`py -m http.server`）
+- 也可命令行传参：`start.bat 8080` 指定端口、`start.bat --no-open` 不自动开浏览器
+
+**手动启动**（任意系统）：
 
 ```bash
 # 任选其一，在项目根目录执行
+node scripts/serve.js              # 零依赖本地服务器，等价于 start.bat 的 Node 分支
 python -m http.server 8000
-# 或
-npx serve .
 ```
 
 然后访问 `http://localhost:8000`。无需安装任何依赖。
@@ -164,6 +171,7 @@ git push
 
 ```
 new_anime/
+├── start.bat               # Windows 双击启动本地预览（Node 优先，Python 兜底）
 ├── index.html              # 页面结构（顶栏、星期标签、三个弹窗）
 ├── app.js                  # 全部业务逻辑
 ├── style.css               # 自定义样式
@@ -175,7 +183,8 @@ new_anime/
 │   └── ...
 └── scripts/
     ├── fetch-covers.js     # 批量下载缺失封面（Node.js，无第三方依赖）
-    └── fetch-data.js       # 生成数据快照 data/calendar.json（Node.js，无第三方依赖）
+    ├── fetch-data.js       # 生成数据快照 data/calendar.json（Node.js，无第三方依赖）
+    └── serve.js            # 本地静态服务器（Node.js，无第三方依赖，自动开浏览器）
 ```
 
 ## 数据与隐私
@@ -203,8 +212,11 @@ node scripts/fetch-covers.js
 ```
 仍失败则运行 `node scripts/fetch-covers.js doctor` 分步排查，它会逐步检查环境变量、代理端口连通性、CONNECT 隧道、API 请求，输出首个断点及处理建议。注意新开的终端窗口不会继承已设置的环境变量，需重新设置。
 
-**Q：本地打开 `index.html` 时控制台报 `excluded.json` 加载失败？**
-`file://` 协议下浏览器禁止 fetch 本地 JSON，属正常现象，不影响番剧浏览。用本地 HTTP 服务器运行即可消除。
+**Q：本地双击 `index.html` 打开，控制台报 `excluded.json` / `data/calendar.json` 加载失败，或页脚没有数据日期？**
+`file://` 协议下浏览器禁止 fetch 本地 JSON，属正常现象——番剧能显示，但共享配置和数据快照都读不到。用 HTTP 方式打开即可：Windows 双击 `start.bat`，或执行 `node scripts/serve.js` / `python -m http.server 8000` 后访问 `http://localhost:8000`。
+
+**Q：`start.bat` 双击没反应 / 中文乱码？**
+脚本会优先用 Node.js，其次 Python；两者都没装时会提示安装地址。若窗口一闪而过，说明服务启动失败，请在该目录打开命令行执行 `node scripts/serve.js` 查看具体错误。`start.bat` 以 GBK 编码保存（cmd 原生解析），用编辑器修改后请保持 ANSI/GBK 编码，存成 UTF-8 会导致批处理语法错。
 
 **Q：集数显示不对？**
 现在优先依据 Bangumi 剧集表的真实播出日期计算（能反映停播、特番、延期），只有缺少剧集数据的条目才回退为「开播日期按每周一集」的粗略估算。仍不准可点击集数角标手动指定（0 或留空恢复自动）。注意角标带 ✏️ 表示之前手动改过、手动值优先于自动值。
